@@ -1,0 +1,105 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f6f9;
+}
+
+/* TOP BAR */
+.topbar {
+    background: #d9ebf9;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 3px solid #1da1d6;
+}
+
+.topbar a {
+    text-decoration: none;
+    color: #0066cc;
+    margin-left: 10px;
+}
+
+/* MAIN LAYOUT */
+.main {
+    display: flex;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 220px;
+    background: #2e74b5;
+    min-height: 100vh;
+}
+
+.sidebar a {
+    display: block;
+    color: #fff;
+    padding: 15px;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.sidebar a:hover {
+    background: #1b5e9a;
+}
+
+/* CONTENT */
+.content {
+    flex: 1;
+    padding: 25px;
+    background: #eef5fb;
+}
+
+/* DASHBOARD CARDS */
+.cards {
+    display: flex;
+    gap: 20px;
+}
+
+.card {
+    background: #ffffff;
+    padding: 20px;
+    width: 300px;
+    border-radius: 5px;
+    border: 1px solid #cde3f6;
+}
+
+.card h3 {
+    background: #e2f2d9;
+    padding: 10px;
+    margin: -20px -20px 15px;
+}
+
+/* FORM */
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    height: 50%;
+}
+
+button {
+    padding: 10px 20px;
+    background: #2e74b5;
+    color: #fff;
+    border: none;
+}
+.profile-table {
+    border-collapse: collapse;
+    width: 50%;
+    margin: 20px auto;
+}
+
+.profile-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+
+.profile-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.profile-table tr:first-child td {
+    font-weight: bold;
+    background-color: #f0f0f0;
+}

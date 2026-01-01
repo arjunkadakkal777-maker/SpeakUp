@@ -1,0 +1,158 @@
+/* ---------- GLOBAL RESET ---------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ---------- GENERAL ---------- */
+body {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    background: #f4f6f9;
+    color: #333;
+}
+
+/* ---------- CONTAINER ---------- */
+.container {
+    width: 420px;
+    margin: 90px auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- HEADINGS ---------- */
+h1, h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 600;
+    color: #212529;
+}
+
+/* ---------- FORMS ---------- */
+label {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    display: block;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0 18px 0;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus,
+select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+    outline: none;
+}
+
+/* ---------- BUTTONS ---------- */
+button {
+    width: 100%;
+    padding: 12px;
+    background: #0d6efd;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+button:hover {
+    background: #0b5ed7;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* ---------- DASHBOARD ---------- */
+.dashboard {
+    width: 520px;
+    margin: 70px auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard a {
+    display: block;
+    text-decoration: none;
+    background: #198754;
+    color: #ffffff;
+    padding: 12px;
+    margin: 12px 0;
+    text-align: center;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.dashboard a:hover {
+    background: #157347;
+    transform: translateY(-1px);
+}
+
+/* ---------- LOGOUT BUTTON ---------- */
+.logout {
+    background: #dc3545 !important;
+}
+
+.logout:hover {
+    background: #bb2d3b !important;
+}
+
+/* ---------- MESSAGE ---------- */
+.message {
+    background: #e6fffa;
+    color: #065f46;
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+/* ---------- ERROR MESSAGE ---------- */
+.error {
+    background: #fdecea;
+    color: #b02a37;
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+/* ---------- LINKS ---------- */
+a {
+    color: #0d6efd;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 480px) {
+    .container,
+    .dashboard {
+        width: 90%;
+        margin: 40px auto;
+    }
+}
