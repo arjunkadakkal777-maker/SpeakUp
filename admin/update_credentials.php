@@ -53,6 +53,16 @@ if (isset($_POST['update_pass'])) {
         .success { background: #d3f9d8; color: #2b8a3e; }
         .error { background: #ffe3e3; color: #c92a2a; }
     </style>
+    <script>
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () {
+            if (confirm("Are you sure you want to log out?")) {
+                window.location.href = "../logout.php";
+            } else {
+                history.pushState(null, null, location.href);
+            }
+        };
+    </script>
 </head>
 <body>
 
@@ -84,7 +94,7 @@ if (isset($_POST['update_pass'])) {
         </a>
         
         <div class="menu-category">Session</div>
-        <a href="../logout.php" class="menu-item">
+        <a href="../logout.php" class="menu-item" onclick="return confirm('Are you sure you want to logout?');">
             <div class="menu-icon" style="background:#eee; color:#333;"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
             Logout
         </a>

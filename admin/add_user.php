@@ -157,11 +157,13 @@ if (isset($_POST['add_user'])) {
         <div class="form-group">
             <label>Username (ID)</label>
             <input type="text" name="username" placeholder="e.g. 2023CSB001" required>
+            <div style="font-size:11px; color:#888; margin-top:4px;">Must be unique. For students use Reg No.</div>
         </div>
 
         <div class="form-group">
             <label>Default Password</label>
             <input type="password" name="password" placeholder="Set initial password" required>
+            <div style="font-size:11px; color:#888; margin-top:4px;">Min 8 characters recommended for security.</div>
         </div>
 
         <div class="form-group">
@@ -172,6 +174,7 @@ if (isset($_POST['add_user'])) {
                 <option value="faculty">Faculty</option>
                 <option value="warden">Warden</option>
                 <option value="hod">HOD</option>
+                <option value="principal">Principal</option>
                 <option value="committee">Committee</option>
                 <!-- <option value="admin">Admin</option> -->
             </select>

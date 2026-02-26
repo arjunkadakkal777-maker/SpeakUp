@@ -1,15 +1,21 @@
-<?php include "../config.php";
-$user_name = $_SESSION['username'] ?? 'Committee Member';
-$role = "Committee";
+<?php
+include "../config.php";
+// Ensure session is started if not already (config usually does, but good practice if standalone)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$user_name = $_SESSION['user']['username'] ?? 'Principal';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Committee Dashboard</title>
+    <title>Principal Dashboard</title>
     <link rel="stylesheet" href="../css/catalog_style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 </head>
 <body>
 
@@ -26,13 +32,14 @@ $role = "Committee";
             Dashboard
         </a>
         <a href="#" class="menu-item">
-            <div class="menu-icon icon-orange"><i class="fa-solid fa-layer-group"></i></div>
-            All Grievances
+            <div class="menu-icon icon-blue"><i class="fa-solid fa-chart-pie"></i></div>
+            Analytics
         </a>
         <a href="#" class="menu-item">
-            <div class="menu-icon icon-blue"><i class="fa-solid fa-chart-pie"></i></div>
-            Reports
+            <div class="menu-icon icon-purple"><i class="fa-solid fa-file-contract"></i></div>
+            All Reports
         </a>
+       
 
         <div class="menu-category">Settings</div>
         <a href="../change_pass.php" class="menu-item">
@@ -41,7 +48,7 @@ $role = "Committee";
         </a>
         
         <div class="menu-category">Session</div>
-        <a href="../logout.php" class="menu-item">
+        <a href="#" class="menu-item" onclick="confirmLogout(event)">
             <div class="menu-icon" style="background:#eee; color:#333;"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
             Logout
         </a>
@@ -50,68 +57,85 @@ $role = "Committee";
     <!-- MAIN CONTENT -->
     <div class="main-content">
         
+        <?php include "notifications_partial.php"; ?>
+
         <!-- HERO SECTION -->
-        <div class="hero-section">
+        <div class="hero-section" style="margin-bottom: 30px;">
             <div class="hero-text">
-                <h1>Committee<br>Dashboard</h1>
-                <p>Welcome, <strong><?php echo $user_name; ?></strong>. Oversee campus grievances and ensure timely resolutions.</p>
-                <button class="subscribe-btn">View Reports</button>
+                <h1>Principal Dashboard</h1>
+                <p>Welcome, <strong><?php echo htmlspecialchars($user_name); ?></strong>. Overview of critical issues requiring attention.</p>
             </div>
-            <div class="hero-card">
-                <div style="flex:1;">
-                    <h3>Pending Cases</h3>
-                    <p style="margin:0; color:#666;">There are 12 open grievances.</p>
-                </div>
-                 <i class="fa-solid fa-scale-balanced" style="font-size:60px; color: #ddd;"></i>
+            <div style="text-align: right; color: #999; font-size: 14px;">
+                <?php echo date("l, F j, Y"); ?>
             </div>
         </div>
 
-        <!-- FILTERS -->
-        <div class="filter-bar">
-            <div class="filter-chip">Status <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i></div>
-            <div class="filter-chip">Priority <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i></div>
-            <div class="filter-chip">Date</div>
-        </div>
-
-        <!-- GRID OF CARDS -->
-        <div class="grid-container">
+        <!-- ESCALATED GRIEVANCES SECTION -->
+        <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <h2 style="font-size: 20px; font-weight: 600; margin: 0; color: #e03131;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Escalated Grievances
+                </h2>
+            </div>
             
-            <a href="#" class="card-item">
-                <div class="card-preview" style="background:#fff0f6; color:#be4bdb;">
-                    <i class="fa-solid fa-inbox"></i>
-                </div>
-                <div class="card-title">New Grievances</div>
-                <div class="card-meta">
-                    <span class="card-author">Inbox</span>
-                    <span style="font-weight:600;">5</span>
-                </div>
-            </a>
-
-            <a href="#" class="card-item">
-                <div class="card-preview" style="background:#e7f5ff; color:#228be6;">
-                    <i class="fa-solid fa-list-check"></i>
-                </div>
-                <div class="card-title">In Progress</div>
-                <div class="card-meta">
-                    <span class="card-author">Tracking</span>
-                    <span style="font-weight:600;">3</span>
-                </div>
-            </a>
-
-            <a href="#" class="card-item">
-                <div class="card-preview" style="background:#ebfbee; color:#40c057;">
-                    <i class="fa-solid fa-check-double"></i>
-                </div>
-                <div class="card-title">Resolved</div>
-                <div class="card-meta">
-                    <span class="card-author">Archive</span>
-                    <span style="font-weight:600;">42</span>
-                </div>
-            </a>
-
+            <div style="background: white; border-radius: 16px; border: 1px solid #eee; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                <?php
+                // Fetch escalated grievances
+                $esc_q = $conn->query("SELECT g.id, g.title, g.category, g.incident_date, g.status, u.username as student_name, u.email as student_email 
+                                       FROM grievances g 
+                                       LEFT JOIN users u ON g.student_id = u.id 
+                                       WHERE g.status = 'Escalated' 
+                                       ORDER BY g.incident_date DESC");
+                
+                if ($esc_q && $esc_q->num_rows > 0):
+                ?>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #fff5f5; border-bottom: 1px solid #ffc9c9;">
+                            <th style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 600; color: #e03131;">ID</th>
+                            <th style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 600; color: #e03131;">Student</th>
+                            <th style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 600; color: #e03131;">Issue</th>
+                            <th style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 600; color: #e03131;">Date</th>
+                            <th style="text-align: right; padding: 16px 24px; font-size: 13px; font-weight: 600; color: #e03131;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while($row = $esc_q->fetch_assoc()): ?>
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td style="padding: 20px 24px; font-weight: 600;">#<?php echo $row['id']; ?></td>
+                            <td style="padding: 20px 24px;">
+                                <div style="font-weight: 500;"><?php echo htmlspecialchars($row['student_name'] ?? 'Unknown'); ?></div>
+                                <div style="font-size: 12px; color: #888;"><?php echo htmlspecialchars($row['student_email'] ?? ''); ?></div>
+                            </td>
+                            <td style="padding: 20px 24px;">
+                                <div style="font-weight: 500; margin-bottom: 4px;"><?php echo htmlspecialchars($row['title']); ?></div>
+                                <span style="font-size: 11px; background: #eee; padding: 2px 8px; border-radius: 4px; color: #555;">
+                                    <?php echo htmlspecialchars($row['category']); ?>
+                                </span>
+                            </td>
+                            <td style="padding: 20px 24px; color: #666; font-size: 14px;"><?php echo date("M j, Y", strtotime($row['incident_date'])); ?></td>
+                            <td style="padding: 20px 24px; text-align: right;">
+                                <a href="grievance_details.php?id=<?php echo $row['id']; ?>" style="text-decoration: none; background: #fff; border: 1px solid #ddd; padding: 8px 16px; border-radius: 8px; color: #333; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                                    View Details <i class="fa-solid fa-arrow-right"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+                <?php else: ?>
+                    <div style="text-align: center; padding: 60px;">
+                        <div style="width: 60px; height: 60px; background: #f8f9fa; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #adb5bd; font-size: 24px;">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <h3 style="font-size: 16px; margin: 0 0 8px 0; color: #333;">No Escalated Issues</h3>
+                        <p style="margin: 0; color: #999; font-size: 14px;">There are currently no grievances escalated to your level.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
-
     </div>
 
+<?php include 'logout_modal.php'; ?>
 </body>
 </html>

@@ -93,7 +93,7 @@ $dash_link = ($role == 'admin') ? 'admin/dashboard.php' : "user/$role.php";
         </a>
         
         <div class="menu-category">Session</div>
-        <a href="logout.php" class="menu-item">
+        <a href="logout.php" class="menu-item" onclick="return confirm('Are you sure you want to logout?');">
             <div class="menu-icon" style="background:#eee; color:#333;"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
             Logout
         </a>

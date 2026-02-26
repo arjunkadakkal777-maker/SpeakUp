@@ -2,115 +2,175 @@
 session_start();
 include "../config.php";
 
-/* Add Role */
+/* 1. Add Role */
 if (isset($_POST['add_role'])) {
     $role = trim($_POST['role_name']);
     if (!empty($role)) {
-        // Prevent SQL injection basic
         $stmt = $conn->prepare("INSERT INTO roles (role_name) VALUES (?)");
         $stmt->bind_param("s", $role);
         $stmt->execute();
     }
 }
 
-/* Delete Role */
+/* 2. Delete Role */
 if (isset($_GET['delete'])) {
-    $id = $_GET['delete'];
+    $id = intval($_GET['delete']);
     $conn->query("DELETE FROM roles WHERE id=$id");
+    header("Location: manage_roles.php"); // Refresh
+    exit;
 }
+
+/* 3. Assign Role to User */
+if (isset($_POST['assign_role'])) {
+    $uid = intval($_POST['faculty_id']);
+    $rid = intval($_POST['assign_role_id']);
+    
+    // Check duplication
+    $check = $conn->query("SELECT id FROM user_roles WHERE user_id=$uid AND role_id=$rid");
+    if ($check->num_rows == 0) {
+        $conn->query("INSERT INTO user_roles (user_id, role_id) VALUES ($uid, $rid)");
+    }
+}
+
+/* 4. Remove Assignment */
+if (isset($_GET['remove_assignment'])) {
+    $mid = intval($_GET['remove_assignment']);
+    $conn->query("DELETE FROM user_roles WHERE id=$mid");
+    header("Location: manage_roles.php");
+    exit;
+}
+
+/* 5. Fetch Active Roles for display */
+$roles_q = $conn->query("SELECT * FROM roles ORDER BY id DESC");
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Roles - Admin</title>
+    <title>Role Manager - Admin</title>
     <link rel="stylesheet" href="../css/catalog_style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .role-card {
+        /* Modern Clean Layout */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .page-title h1 { margin: 0; font-size: 24px; }
+        .page-title p { margin: 5px 0 0; color: #666; font-size: 14px; }
+        
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        /* Card Styles */
+        .section-card {
             background: white;
             border-radius: 16px;
             padding: 25px;
-            position: relative;
-            transition: transform 0.2s, box-shadow 0.2s;
             border: 1px solid #f0f0f0;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 160px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            margin-bottom: 30px;
         }
-        .role-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-            border-color: transparent;
-        }
-        .role-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            margin-bottom: 15px;
-        }
-        .role-name {
-            font-size: 18px;
+        .section-title {
+            font-size: 16px;
             font-weight: 700;
-            color: #333;
-        }
-        .role-id {
-            font-size: 12px;
-            color: #999;
-            margin-top: 5px;
-        }
-        .delete-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: #adb5bd;
-            transition: color 0.2s;
-        }
-        .delete-btn:hover {
-            color: #fa5252;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        /* Add Card Styles */
-        .add-card {
-            background: #f8f9fa;
-            border: 2px dashed #dee2e6;
+        /* Role Item */
+        .role-item {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
-            cursor: default; /* It contains a form */
+            justify-content: space-between;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f3f5;
+            transition: background 0.2s;
         }
-        .add-card:hover {
-            background: #fff;
-            border-color: #228be6;
-            transform: none;
-            box-shadow: none;
+        .role-item:last-child { border-bottom: none; }
+        .role-item:hover { background: #f8f9fa; }
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            font-size: 14px;
         }
-        .add-input {
-            width: 80%; 
-            padding: 10px; 
-            border: 1px solid #ddd; 
-            border-radius: 6px; 
+        .role-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+        /* Faculty Item */
+        .faculty-row {
+            padding: 15px;
+            border-bottom: 1px solid #f1f3f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .faculty-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .faculty-avatar {
+            width: 40px; height: 40px;
+            background: #e7f5ff;
+            color: #1c7ed6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Form Elements */
+        .simple-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
             margin-bottom: 10px;
-            text-align: center;
+            font-size: 14px;
         }
-        .add-btn {
-            background: #228be6; 
-            color: white; 
-            border: none; 
-            padding: 8px 20px; 
-            border-radius: 6px; 
+        .simple-btn {
+            background: #228be6;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 14px;
+            width: 100%;
         }
+        .tag {
+            background: #f1f3f5;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #495057;
+            margin-right: 5px;
+        }
+
+        /* Modal Like overlay for adding/assigning (Simplified to inline for now) */
     </style>
+    <script>
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () {
+            if (confirm("Are you sure you want to log out?")) {
+                window.location.href = "../logout.php";
+            } else {
+                history.pushState(null, null, location.href);
+            }
+        };
+    </script>
 </head>
 <body>
 
@@ -136,13 +196,17 @@ if (isset($_GET['delete'])) {
         </a>
 
         <div class="menu-category">Settings</div>
+        <a href="import_faculty.php" class="menu-item">
+            <div class="menu-icon icon-blue"><i class="fa-solid fa-file-csv"></i></div>
+            Import Faculty
+        </a>
         <a href="../change_pass.php" class="menu-item">
             <div class="menu-icon icon-green"><i class="fa-solid fa-lock"></i></div>
             Password
         </a>
         
         <div class="menu-category">Session</div>
-        <a href="../logout.php" class="menu-item">
+        <a href="../logout.php" class="menu-item" onclick="return confirm('Are you sure you want to logout?');">
             <div class="menu-icon" style="background:#eee; color:#333;"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
             Logout
         </a>
@@ -151,69 +215,145 @@ if (isset($_GET['delete'])) {
     <!-- MAIN CONTENT -->
     <div class="main-content">
         
-        <!-- HERO SECTION -->
-        <div class="hero-section">
-            <div class="hero-text">
+        <div class="page-header">
+            <div class="page-title">
                 <h1>Role Manager</h1>
-                <p>Define and manage the different user roles available in the system.</p>
+                <p>Configure system roles and assign faculty members.</p>
             </div>
-            <!-- <div class="hero-card" style="background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);">
-                <div style="flex:1;">
-                    <h3>Access Control</h3>
-                    <p style="margin:0; color:#1971c2;">Role-based security</p>
-                </div>
-                 <i class="fa-solid fa-user-shield" style="font-size:60px; color: #a5d8ff;"></i>
-            </div> -->
+            <!-- <button class="btn-large" style="width: auto; padding: 10px 20px;"><i class="fa-solid fa-plus"></i> Assign Role</button> -->
         </div>
 
-        <div style="margin-bottom: 20px; color: #666; font-size: 14px;">
-            <strong><?php echo mysqli_num_rows(mysqli_query($conn, "SELECT * FROM roles")); ?></strong> roles configured.
-        </div>
-
-        <!-- ROLES GRID -->
-        <div class="grid-container" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 25px;">
+        <div class="layout-grid">
             
-            <!-- 1. The "Add New" Card (Form) -->
-            <div class="role-card add-card">
-                <form method="POST" style="width: 100%; text-align: center;">
-                    <div style="color: #adb5bd; font-size: 30px; margin-bottom: 10px;">
-                        <i class="fa-solid fa-circle-plus"></i>
+            <!-- LEFT COLUMN: Roles Config -->
+            <div>
+                <!-- Add Role Card -->
+                <div class="section-card">
+                    <div class="section-title">
+                        Create New Role
                     </div>
-                    <input type="text" name="role_name" class="add-input" placeholder="New Role Name" required>
-                    <button name="add_role" type="submit" class="add-btn">Create</button>
-                </form>
+                    <form method="POST">
+                        <input type="text" name="role_name" class="simple-input" placeholder="Role Name (e.g. Warden)" required>
+                        <button type="submit" name="add_role" class="simple-btn">Create Role</button>
+                    </form>
+                </div>
+
+                <!-- Roles List -->
+                <div class="section-card">
+                    <div class="section-title">
+                        Active Roles
+                        <span style="font-size: 12px; color: #999; font-weight: 400;"><?php echo mysqli_num_rows($roles_q); ?> roles</span>
+                    </div>
+                    <?php 
+                    mysqli_data_seek($roles_q, 0); // Reset pointer
+                    while($r = mysqli_fetch_assoc($roles_q)): 
+                        $colors = ['#228be6', '#fa5252', '#40c057', '#e64980', '#7950f2'];
+                        $color = $colors[$r['id'] % 5];
+                    ?>
+                    <div class="role-item">
+                        <div class="role-badge">
+                            <span class="role-dot" style="background: <?php echo $color; ?>;"></span>
+                            <?php echo htmlspecialchars($r['role_name']); ?>
+                        </div>
+                        <a href="?delete=<?php echo $r['id']; ?>" onclick="return confirm('Remove this role?');" style="color: #adb5bd; font-size: 13px;">
+                            <i class="fa-solid fa-trash"></i>
+                        </a>
+                    </div>
+                    <?php endwhile; ?>
+                </div>
             </div>
 
-            <!-- 2. Existing Roles Loop -->
-            <?php
-            $roles = mysqli_query($conn, "SELECT * FROM roles ORDER BY id DESC");
-            while ($r = mysqli_fetch_assoc($roles)) {
-                
-                // Color coding based on ID for variety
-                $bg_colors = ['#e7f5ff', '#fff0f6', '#f3f0ff', '#e6fcf5', '#fff9db'];
-                $txt_colors = ['#1971c2', '#c2255c', '#6741d9', '#099268', '#f08c00'];
-                $idx = $r['id'] % count($bg_colors);
-                $bg = $bg_colors[$idx];
-                $txt = $txt_colors[$idx];
-
-            ?>
-                <div class="role-card">
-                    <a href="?delete=<?php echo $r['id']; ?>" class="delete-btn" onclick="return confirm('Delete this role? Users assigned to this role might lose access.');">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </a>
-                    
-                    <div class="role-icon" style="background: <?php echo $bg; ?>; color: <?php echo $txt; ?>;">
-                        <i class="fa-solid fa-user-tag"></i>
-                    </div>
-                    
-                    <div>
-                        <div class="role-name"><?php echo htmlspecialchars($r['role_name']); ?></div>
-                        <div class="role-id">System ID: <?php echo $r['id']; ?></div>
-                    </div>
+            <!-- RIGHT COLUMN: Faculty Assignments -->
+            <div class="section-card" style="min-height: 500px;">
+                <div class="section-title">
+                    Faculty Role Assignments
                 </div>
-            <?php } ?>
 
+                <!-- Assignment Form -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px dashed #dee2e6;">
+                    <form method="POST" style="display: flex; gap: 10px; align-items: center;">
+                        <select name="faculty_id" class="simple-input" style="margin:0; width: 50%;" required>
+                            <option value="">Select Faculty User</option>
+                            <?php 
+                            // Fetch users who are likely staff (exclude students for cleaner list if possible, or show all but Student)
+                            // Assuming 'student' role exists in users table.
+                            $users = $conn->query("SELECT id, username, email FROM users WHERE role != 'student' ORDER BY username");
+                            while($u = $users->fetch_assoc()) {
+                                $display = $u['username'];
+                                if (!empty($u['email'])) {
+                                    $display .= " (" . $u['email'] . ")";
+                                }
+                                echo "<option value='".$u['id']."'>".$display."</option>";
+                            }
+                            ?>
+                        </select>
+                        <select name="assign_role_id" class="simple-input" style="margin:0; width: 35%;" required>
+                            <option value="">Select Role</option>
+                            <?php 
+                            mysqli_data_seek($roles_q, 0);
+                            while($r = mysqli_fetch_assoc($roles_q)) {
+                                echo "<option value='".$r['id']."'>".$r['role_name']."</option>";
+                            }
+                            ?>
+                        </select>
+                        <button type="submit" name="assign_role" class="simple-btn" style="width: auto;">Assign</button>
+                    </form>
+                </div>
+
+                <!-- Assignments List Table -->
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <?php
+                    // Fetch users with their assigned extra roles
+                    // We need a table `user_roles` linking users to roles.
+                    // IF WE DONT HAVE IT, WE NEED TO CREATE IT.
+                    // Let's assume for this specific task, we might need to create a many-to-many table.
+                    // OR, check if `roles` table is just definitions.
+                    // The prompt implies "Assign faculties to one or multiple roles".
+                    
+                    // CHECK DB Structure: `user_roles` (user_id, role_id)
+                    $chk = $conn->query("SHOW TABLES LIKE 'user_roles'");
+                    if($chk->num_rows == 0) {
+                        $conn->query("CREATE TABLE user_roles (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, role_id INT, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE)");
+                    }
+                    
+                    $mappings = $conn->query("
+                        SELECT ur.id as map_id, u.username, u.email, r.role_name 
+                        FROM user_roles ur 
+                        JOIN users u ON ur.user_id = u.id 
+                        JOIN roles r ON ur.role_id = r.id
+                        ORDER BY u.username
+                    ");
+
+                    if ($mappings->num_rows > 0):
+                        while($m = $mappings->fetch_assoc()):
+                    ?>
+                    <div class="faculty-row">
+                        <div class="faculty-info">
+                            <div class="faculty-avatar">
+                                <?php echo strtoupper(substr($m['username'], 0, 1)); ?>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; color: #333;"><?php echo htmlspecialchars($m['username']); ?></div>
+                                <div style="font-size: 12px; color: #888;"><?php echo htmlspecialchars($m['email']); ?></div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="tag"><?php echo htmlspecialchars($m['role_name']); ?></span>
+                            <a href="?remove_assignment=<?php echo $m['map_id']; ?>" style="color: #fa5252; font-size: 12px;" onclick="return confirm('Remove assignment?');"><i class="fa-solid fa-xmark"></i></a>
+                        </div>
+                    </div>
+                    <?php endwhile; ?>
+                    <?php else: ?>
+                        <div style="text-align:center; padding: 40px; color: #999;">
+                            <i class="fa-solid fa-user-xmark" style="font-size: 30px; margin-bottom: 10px;"></i><br>
+                            No roles assigned yet.
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+            </div>
         </div>
+
     </div>
 
 </body>

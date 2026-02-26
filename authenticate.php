@@ -1,8 +1,9 @@
 <?php
 include "config.php";
 
-$username = $_POST['username'];
-$password = $_POST['password'];
+// Login with Username only
+$username = trim($_POST['username']);
+$password = trim($_POST['password']);
 
 $q = $conn->prepare("SELECT * FROM users WHERE username=?");
 $q->bind_param("s", $username);

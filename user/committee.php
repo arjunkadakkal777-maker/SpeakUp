@@ -2,8 +2,7 @@
 include "../config.php";
 
 
-
-if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 'warden') {
+if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 'committee') {
     header("Location: ../login.php");
     exit;
 }
@@ -11,59 +10,38 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 'warden') {
 $user = $_SESSION['user'];
 $user_name = $user['username'];
 
-// Check if email column exists (robustness)
+// Check if email column exists
 $check_email = $conn->query("SHOW COLUMNS FROM users LIKE 'email'");
 $has_email = ($check_email->num_rows > 0);
 $email_select = $has_email ? "u.email as student_email," : "NULL as student_email,";
 
-// Fetch Stats for Hostel Category
+// Fetch Stats (Global)
 $stats = [
     'total' => 0,
     'pending' => 0,
     'resolved' => 0
 ];
 
-$stat_q = $conn->prepare("SELECT 
+$stat_q = $conn->query("SELECT 
     COUNT(*) as total,
     SUM(CASE WHEN status != 'Resolved' THEN 1 ELSE 0 END) as pending,
     SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved
-    FROM grievances WHERE category = 'Hostel'");
+    FROM grievances");
 
-if ($stat_q->execute()) {
-    $res = $stat_q->get_result();
-    $stats = $res->fetch_assoc();
+if ($stat_q) {
+    $stats = $stat_q->fetch_assoc();
 }
 
-// Fetch Hostel Grievances
-$hostel_grievances = [];
-$g_q = $conn->prepare("SELECT g.id, g.title, g.incident_date, g.status, g.category, g.location, $email_select u.username as student_name, g.is_anonymous 
-                       FROM grievances g 
-                       LEFT JOIN users u ON g.student_id = u.id 
-                       WHERE g.category = 'Hostel' 
-                       ORDER BY g.incident_date DESC");
+// Fetch All Grievances for Review
+$grievances = [];
+$g_q = $conn->query("SELECT g.id, g.title, g.incident_date, g.created_at, g.status, g.category, g.location, $email_select u.username as student_name 
+                     FROM grievances g 
+                     LEFT JOIN users u ON g.student_id = u.id 
+                     ORDER BY g.status ASC, g.incident_date DESC");
 
-if ($g_q->execute()) {
-    $res = $g_q->get_result();
-    while ($row = $res->fetch_assoc()) {
-        $hostel_grievances[] = $row;
-    }
-}
-
-// Fetch Faculty/Academic Grievances - ONLY assigned to this warden (acting as faculty)
-$faculty_grievances = [];
-$warden_id = $_SESSION['user']['id'];
-
-$f_q = $conn->prepare("SELECT g.id, g.title, g.incident_date, g.status, g.category, g.location, $email_select u.username as student_name, g.is_anonymous 
-                       FROM grievances g 
-                       LEFT JOIN users u ON g.student_id = u.id 
-                       WHERE g.category = 'Academic' AND g.faculty_id = ?
-                       ORDER BY g.incident_date DESC");
-$f_q->bind_param("i", $warden_id);
-
-if ($f_q->execute()) {
-    $res_f = $f_q->get_result();
-    while ($row = $res_f->fetch_assoc()) {
-        $faculty_grievances[] = $row;
+if ($g_q) {
+    while ($row = $g_q->fetch_assoc()) {
+        $grievances[] = $row;
     }
 }
 ?>
@@ -72,7 +50,7 @@ if ($f_q->execute()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warden Dashboard</title>
+    <title>Committee Dashboard</title>
     <link rel="stylesheet" href="../css/catalog_style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -144,7 +122,7 @@ if ($f_q->execute()) {
         .status-open { background: #ffe3e3; color: #c92a2a; }
         .status-progress { background: #fff3bf; color: #f08c00; }
         .status-resolved { background: #d3f9d8; color: #2b8a3e; }
-        .status-escalated { background: #ffc9c9; color: #e03131; }
+        .status-escalated { background: #ffc9c9; color: #e03131; border: 1px solid #ffa8a8; }
 
         .action-btn {
             text-decoration: none;
@@ -164,7 +142,6 @@ if ($f_q->execute()) {
         }
     </style>
 
-
 </head>
 <body>
 
@@ -176,7 +153,7 @@ if ($f_q->execute()) {
         </div>
 
         <div class="menu-category">Menu</div>
-        <a href="warden.php" class="menu-item active">
+        <a href="committee.php" class="menu-item active">
             <div class="menu-icon icon-pink"><i class="fa-solid fa-house"></i></div>
             Dashboard
         </a>
@@ -203,8 +180,8 @@ if ($f_q->execute()) {
         <!-- HERO SECTION -->
         <div class="hero-section" style="margin-bottom: 30px;">
             <div class="hero-text">
-                <h1>Warden Dashboard</h1>
-                <p>Welcome, <strong><?php echo htmlspecialchars($user_name); ?></strong>. Manage hostel-related grievances.</p>
+                <h1>Committee Dashboard</h1>
+                <p>Welcome, <strong><?php echo htmlspecialchars($user_name); ?></strong>. Review and oversee all campus grievances.</p>
             </div>
             <div style="text-align: right; color: #999; font-size: 14px;">
                 <?php echo date("l, F j, Y"); ?>
@@ -216,16 +193,16 @@ if ($f_q->execute()) {
             <div class="stat-card">
                 <div>
                     <div class="stat-value"><?php echo $stats['total'] ?? 0; ?></div>
-                    <div class="stat-label">Hostel Grievances</div>
+                    <div class="stat-label">Total Grievances</div>
                 </div>
-                <div class="menu-icon icon-blue" style="width: 48px; height: 48px; font-size: 20px;"><i class="fa-solid fa-clipboard-list"></i></div>
+                <div class="menu-icon icon-blue" style="width: 48px; height: 48px; font-size: 20px;"><i class="fa-solid fa-list"></i></div>
             </div>
             <div class="stat-card">
                 <div>
                     <div class="stat-value"><?php echo $stats['pending'] ?? 0; ?></div>
-                    <div class="stat-label">Pending Action</div>
+                    <div class="stat-label">Pending Reviews</div>
                 </div>
-                <div class="menu-icon icon-orange" style="width: 48px; height: 48px; font-size: 20px;"><i class="fa-solid fa-clock"></i></div>
+                <div class="menu-icon icon-orange" style="width: 48px; height: 48px; font-size: 20px;"><i class="fa-solid fa-magnifying-glass"></i></div>
             </div>
             <div class="stat-card">
                 <div>
@@ -236,53 +213,80 @@ if ($f_q->execute()) {
             </div>
         </div>
 
-        <!-- HOSTEL GRIEVANCE LIST -->
+        <!-- GRIEVANCE LIST -->
         <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="font-size: 20px; font-weight: 600; margin: 0;">Hostel Complaints</h2>
+            <h2 style="font-size: 20px; font-weight: 600; margin: 0;">All Complaints</h2>
         </div>
 
-        <?php if (count($hostel_grievances) > 0): ?>
+        <?php if (count($grievances) > 0): ?>
             <table class="grievance-table">
                 <thead>
                     <tr>
                         <th>ID</th>
                         <th>Student</th>
                         <th>Issue</th>
-                        <th>Location</th>
+                        <th>Category</th>
                         <th>Date Reported</th>
                         <th>Status</th>
                         <th style="text-align: right;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($hostel_grievances as $g): 
+                    <?php foreach ($grievances as $g): 
                         $status_class = 'status-open';
                         if ($g['status'] == 'In Progress') $status_class = 'status-progress';
                         if ($g['status'] == 'Resolved') $status_class = 'status-resolved';
                         if ($g['status'] == 'Escalated') $status_class = 'status-escalated';
+
+                        // Calculate Days Pending
+                        $days_pending = 0;
+                        $calc_date = $g['incident_date'];
+                        
+                        // Fallback to created_at if incident_date is empty or invalid
+                        if (empty($calc_date) || strtotime($calc_date) < strtotime('2020-01-01')) {
+                            $calc_date = $g['created_at'];
+                        }
+
+                        // Ensure we have a valid date to calculate
+                        if ($g['status'] != 'Resolved' && strtotime($calc_date) > strtotime('2020-01-01')) {
+                            $created = new DateTime($calc_date); 
+                            $now = new DateTime();
+                            $days_pending = $now->diff($created)->days;
+                        }
                     ?>
                     <tr>
                         <td>#<?php echo $g['id']; ?></td>
                          <td>
-                            <div style="font-weight: 500;"><?php echo ($g['is_anonymous'] ?? 0) == 1 ? 'Anonymous Student' : htmlspecialchars($g['student_name'] ?? 'Unknown'); ?></div>
+                            <div style="font-weight: 500;"><?php echo htmlspecialchars($g['student_name'] ?? 'Unknown'); ?></div>
                         </td>
                         <td>
                             <div style="font-weight: 500;"><?php echo htmlspecialchars($g['title']); ?></div>
+                            <?php if ($days_pending > 7): ?>
+                                <span style="font-size: 11px; color: #e03131; font-weight: 600;">
+                                    <i class="fa-solid fa-clock"></i> Overdue (<?php echo $days_pending; ?> days)
+                                </span>
+                            <?php endif; ?>
                         </td>
-                        <td><?php echo htmlspecialchars($g['location']); ?></td>
-                        <td><?php echo date("M j, Y", strtotime($g['incident_date'])); ?></td>
+                        <td><?php echo htmlspecialchars($g['category']); ?></td>
+                        <td>
+                            <?php 
+                                 echo ($days_pending >= 0 && strtotime($calc_date) > strtotime('2020-01-01')) 
+                                     ? date("M j, Y", strtotime($calc_date)) 
+                                     : '<span style="color:#ccc;">N/A</span>'; 
+                            ?>
+                        </td>
                         <td>
                             <span class="status-badge <?php echo $status_class; ?>"><?php echo $g['status'] ? $g['status'] : 'Open'; ?></span>
                         </td>
                         <td style="text-align: right;">
                             <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                                <?php if (!empty($g['student_email']) && ($g['is_anonymous'] ?? 0) != 1): ?>
+                                <?php if (!empty($g['student_email'])): ?>
                                 <a href="mailto:<?php echo htmlspecialchars($g['student_email']); ?>" class="action-btn" title="Contact Student">
                                     <i class="fa-solid fa-envelope"></i>
                                 </a>
                                 <?php endif; ?>
                                 <a href="grievance_details.php?id=<?php echo $g['id']; ?>" class="action-btn">
-                                    View Details <i class="fa-solid fa-arrow-right"></i>
+                                    Review <i class="fa-solid fa-arrow-right"></i>
                                 </a>
                             </div>
                         </td>
@@ -291,70 +295,9 @@ if ($f_q->execute()) {
                 </tbody>
             </table>
         <?php else: ?>
-            <div style="text-align: center; padding: 40px; background: #f8f8f8; border-radius: 16px; color: #999; margin-bottom: 20px;">
-                <i class="fa-solid fa-bed" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
-                <p>No hostel grievances found.</p>
-            </div>
-        <?php endif; ?>
-
-        <!-- FACULTY/ACADEMIC GRIEVANCE LIST -->
-        <div style="margin-top: 50px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="font-size: 20px; font-weight: 600; margin: 0;">Faculty Related Complaints</h2>
-        </div>
-
-        <?php if (count($faculty_grievances) > 0): ?>
-            <table class="grievance-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Student</th>
-                        <th>Issue</th>
-                        <th>Location</th>
-                        <th>Date Reported</th>
-                        <th>Status</th>
-                        <th style="text-align: right;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($faculty_grievances as $g): 
-                        $status_class = 'status-open';
-                        if ($g['status'] == 'In Progress') $status_class = 'status-progress';
-                        if ($g['status'] == 'Resolved') $status_class = 'status-resolved';
-                        if ($g['status'] == 'Escalated') $status_class = 'status-escalated';
-                    ?>
-                    <tr>
-                        <td>#<?php echo $g['id']; ?></td>
-                         <td>
-                            <div style="font-weight: 500;"><?php echo ($g['is_anonymous'] ?? 0) == 1 ? 'Anonymous Student' : htmlspecialchars($g['student_name'] ?? 'Unknown'); ?></div>
-                        </td>
-                        <td>
-                            <div style="font-weight: 500;"><?php echo htmlspecialchars($g['title']); ?></div>
-                        </td>
-                        <td><?php echo htmlspecialchars($g['location']); ?></td>
-                        <td><?php echo date("M j, Y", strtotime($g['incident_date'])); ?></td>
-                        <td>
-                            <span class="status-badge <?php echo $status_class; ?>"><?php echo $g['status'] ? $g['status'] : 'Open'; ?></span>
-                        </td>
-                        <td style="text-align: right;">
-                            <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                                <?php if (!empty($g['student_email']) && ($g['is_anonymous'] ?? 0) != 1): ?>
-                                <a href="mailto:<?php echo htmlspecialchars($g['student_email']); ?>" class="action-btn" title="Contact Student">
-                                    <i class="fa-solid fa-envelope"></i>
-                                </a>
-                                <?php endif; ?>
-                                <a href="grievance_details.php?id=<?php echo $g['id']; ?>" class="action-btn">
-                                    View Details <i class="fa-solid fa-arrow-right"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php else: ?>
-            <div style="text-align: center; padding: 40px; background: #f8f8f8; border-radius: 16px; color: #999;">
-                <i class="fa-solid fa-chalkboard-user" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
-                <p>No faculty related grievances found.</p>
+            <div style="text-align: center; padding: 60px; background: #f8f8f8; border-radius: 16px; color: #999;">
+                <i class="fa-solid fa-clipboard-check" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p>No grievances found for review.</p>
             </div>
         <?php endif; ?>
 

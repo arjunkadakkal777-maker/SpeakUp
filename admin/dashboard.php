@@ -9,6 +9,16 @@ include "../config.php";
     <title>Admin Dashboard</title>
     <link rel="stylesheet" href="../css/catalog_style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () {
+            if (confirm("Are you sure you want to log out?")) {
+                window.location.href = "../logout.php";
+            } else {
+                history.pushState(null, null, location.href);
+            }
+        };
+    </script>
 </head>
 <body>
 
@@ -34,13 +44,17 @@ include "../config.php";
         </a>
 
         <div class="menu-category">Settings</div>
+        <a href="import_faculty.php" class="menu-item">
+            <div class="menu-icon icon-blue"><i class="fa-solid fa-file-csv"></i></div>
+            Import Faculty
+        </a>
         <a href="../change_pass.php" class="menu-item">
             <div class="menu-icon icon-green"><i class="fa-solid fa-lock"></i></div>
             Password
         </a>
         
         <div class="menu-category">Session</div>
-        <a href="../logout.php" class="menu-item">
+        <a href="../logout.php" class="menu-item" onclick="return confirm('Are you sure you want to logout?');">
             <div class="menu-icon" style="background:#eee; color:#333;"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
             Logout
         </a>
